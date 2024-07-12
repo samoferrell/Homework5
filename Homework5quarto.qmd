@@ -1,0 +1,110 @@
+---
+title: "Homework5quarto"
+format: html
+editor: visual
+---
+
+## Task 1: Conceptual Questions
+
+What is the purpose of using cross-validation when fitting a random forest model?
+
+> The purpose is to:
+
+Describe the bagged tree algorithm.
+
+> The bagged tree algorithm is
+
+What is meant by a general linear model?
+
+> A general linear model means
+
+When fitting a multiple linear regression model, what does adding an interaction term do? That is,
+what does it allow the model to do differently as compared to when it is not included in the model?
+
+> Adding an interaction term
+
+Why do we split our data into a training and test set?
+
+> We split our data into a training and test set to
+
+## Task 2: Fitting Models
+```{r}
+library(tidyverse)
+library(caret)
+```
+
+
+```{r}
+heart <- read_csv("heart.csv")
+```
+1. Quickly understand your data. Check on missingness and summarize the data, especially with respect to the relationships of the variables to HeartDisease
+```{r}
+heartNA <- heart |>
+  filter(if_any(everything(), is.na))
+# no missing data
+
+table(heart$ChestPainType, heart$HeartDisease)
+table(heart$Sex, heart$HeartDisease)
+table(heart$RestingECG, heart$HeartDisease)
+```
+2. Create a new variable that is a factor version of the HeartDisease variable (if needed, this depends on how you read in your data). Remove the ST_Slope variable and the original HeartDisease variable (if applicable).
+
+```{r}
+heart_new <- heart |>
+  mutate(HeartDiseaseF = as.factor(HeartDisease)) |>
+  select(-c(ST_Slope,HeartDisease))
+```
+
+Create dummy columns corresponding to the values of these three variables (Sex,
+ExerciseAngina ChestPainType, and RestingECG) for use in our kNN fit. The caret vignette has a function to help us out here. You should use dummyVars() and predict() to create new columns. Then add these columns to our data frame
+
+```{r}
+model <- dummyVars(~ Sex + ExerciseAngina + ChestPainType + RestingECG, data = heart_new)
+heart_dummy <- as.data.frame(predict(model, newdata = heart_new))
+View(heart_dummy)
+heart_new_dummy <- cbind(heart_new, heart_dummy)
+```
+
+Split your data into a training and test set. (Ideally you’d do this prior to the EDA so that info from the EDA doesn’t bias what you do modeling-wise, but that isn’t usually done.)
+
+```{r}
+
+```
+
+
+### kNN
+Next, we’ll fit a kNN model. The article here gives a great example of selecting the number of neighbors to use with the caret package. You don’t have to use all the variables from your dataset when fitting the model. However, you should only use numeric variables.
+They use repeated 10 fold cross-validation. Although computationally intensive, doing repeated CV helps to give a more stable prediction of CV error. This is similar to how a mean is less variable than a single value. Since there is some inherent randomness in doing a CV computation, we can get an overall more stable result by averaging a few runs of the CV algorithm! Train the kNN model. Use repeated 10 fold cross-validation, with the number of repeats being 3. You should also preprocess the data by centering and scaling. When fitting the model, set the tuneGrid so that you are considering values of k of 1, 2, 3, . . . , 40. (Note: From the help for the train() function it says: tuneGrid A data frame with possible tuning values. The columns are named the same as the tuning parameters. The
+name of the tuning parameter here is k.) Lastly, check how well your chosen model does on the test set using the confusionMatrix() function.
+
+
+### Logistic Regression
+Using your EDA, posit three different logistic regression models. Note: You don’t have to use the dummy columns you made here as the glm() function (and the caret implementation of it) can handle factor/character variables as predictors. Fit those models on the training set, using repeated CV as done above. You can preprocess the data or not, up to you. Identify your best model and provide a basic summary of it. Lastly, check how well your chosen model does on the test set using the confusionMatrix() function
+
+
+### Tree Models
+In this section we’ll fit a few different tree based models in a similar way as above!
+Choose your own variables of interest (as with logistic regression, this models can accept factor/character variables as predictors). Use repated 10 fold CV to select a best 2 
+• classification tree model (use method = rpart: tuning parameter is cp, use values 0, 0.001, 0.002, . . . , 0.1)
+• a random forest (use method = rf: tuning parameter is mtry, use values of 1, 2, . . . , # of predictors (bagging is a special case here!)
+• a boosted tree (use method = gbm: tuning parameters are n.trees, interaction.depth, shrinkage, and n.minobsinnode, use all combinations of n.trees of 25, 50, 100, and 200, interaction.depth of 1, 2, 3, shrinkage = 0.1, and nminobsinnode = 10; Hint: use expand.grid() to create your data frame for tuneGrid and verbose = FALSE limits the output produced Lastly, check how well each of your chosen models do on the test set using the confusionMatrix() function.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
