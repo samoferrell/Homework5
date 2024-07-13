@@ -68,14 +68,24 @@ heart_new_dummy <- cbind(heart_new, heart_dummy)
 Split your data into a training and test set. (Ideally you’d do this prior to the EDA so that info from the EDA doesn’t bias what you do modeling-wise, but that isn’t usually done.)
 
 ```{r}
-
+set.seed(3)
+split <- createDataPartition(y = heart_new_dummy$HeartDiseaseF, p = 0.8, list = FALSE)
+train <- heart_new_dummy[split, ]
+test <- heart_new_dummy[-split, ]
+dim(train)
 ```
 
 
 ### kNN
 Next, we’ll fit a kNN model. The article here gives a great example of selecting the number of neighbors to use with the caret package. You don’t have to use all the variables from your dataset when fitting the model. However, you should only use numeric variables.
-They use repeated 10 fold cross-validation. Although computationally intensive, doing repeated CV helps to give a more stable prediction of CV error. This is similar to how a mean is less variable than a single value. Since there is some inherent randomness in doing a CV computation, we can get an overall more stable result by averaging a few runs of the CV algorithm! Train the kNN model. Use repeated 10 fold cross-validation, with the number of repeats being 3. You should also preprocess the data by centering and scaling. When fitting the model, set the tuneGrid so that you are considering values of k of 1, 2, 3, . . . , 40. (Note: From the help for the train() function it says: tuneGrid A data frame with possible tuning values. The columns are named the same as the tuning parameters. The
-name of the tuning parameter here is k.) Lastly, check how well your chosen model does on the test set using the confusionMatrix() function.
+They use repeated 10 fold cross-validation. Although computationally intensive, doing repeated CV helps to give a more stable prediction of CV error. This is similar to how a mean is less variable than a single value. Since there is some inherent randomness in doing a CV computation, we can get an overall more stable result by averaging a few runs of the CV algorithm! Train the kNN model. 
+
+Use repeated 10 fold cross-validation, with the number of repeats being 3. You should also preprocess the data by centering and scaling. When fitting the model, set the tuneGrid so that you are considering values of k of 1, 2, 3, . . . , 40. (Note: From the help for the train() function it says: tuneGrid A data frame with possible tuning values. The columns are named the same as the tuning parameters. The name of the tuning parameter here is k.) Lastly, check how well your chosen model does on the test set using the confusionMatrix() function.
+
+```{r}
+
+fit1 <- train(HeartDiseaseF ~ )
+```
 
 
 ### Logistic Regression
