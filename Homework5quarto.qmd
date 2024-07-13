@@ -82,14 +82,114 @@ They use repeated 10 fold cross-validation. Although computationally intensive, 
 
 Use repeated 10 fold cross-validation, with the number of repeats being 3. You should also preprocess the data by centering and scaling. When fitting the model, set the tuneGrid so that you are considering values of k of 1, 2, 3, . . . , 40. (Note: From the help for the train() function it says: tuneGrid A data frame with possible tuning values. The columns are named the same as the tuning parameters. The name of the tuning parameter here is k.) Lastly, check how well your chosen model does on the test set using the confusionMatrix() function.
 
+#### Model
 ```{r}
+train_numeric <- train |>
+  select(-c(Sex, ChestPainType, RestingECG, ExerciseAngina))
+preProcValues <- preProcess(train_numeric, method = c("center", "scale"))
+trainTransformed <- predict(preProcValues, train_numeric)
 
-fit1 <- train(HeartDiseaseF ~ )
+
+fit1 <- train(HeartDiseaseF ~ ., 
+              data = trainTransformed,
+              method = "knn",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3,
+              ),
+              tuneGrid = expand.grid(k = seq(from = 1, to = 40, by = 1))
+)
 ```
 
+#### Plot
+```{r}
+plot(fit1)
+```
+#### Analysis
+```{r}
+test_numeric <- test |>
+  select(-c(Sex, ChestPainType, RestingECG, ExerciseAngina))
+preProcValues <- preProcess(test_numeric, method = c("center", "scale"))
+testTransformed <- predict(preProcValues, test_numeric)
+prediction_test <- predict(fit1, testTransformed)
+prediction_test
+```
+
+```{r}
+postResample(predict(fit1, newdata = testTransformed), testTransformed$HeartDiseaseF)
+```
+
+```{r}
+confusionMatrix(data = testTransformed$HeartDiseaseF, 
+                reference = predict(fit1, newdata = testTransformed))
+```
 
 ### Logistic Regression
 Using your EDA, posit three different logistic regression models. Note: You don’t have to use the dummy columns you made here as the glm() function (and the caret implementation of it) can handle factor/character variables as predictors. Fit those models on the training set, using repeated CV as done above. You can preprocess the data or not, up to you. Identify your best model and provide a basic summary of it. Lastly, check how well your chosen model does on the test set using the confusionMatrix() function
+
+
+```{r}
+model1 <- HeartDiseaseF ~ Age + Sex + Cholesterol
+model2 <- HeartDiseaseF ~ RestingBP + FastingBS + MaxHR
+model3 <- HeartDiseaseF ~ ChestPainType*RestingECG
+```
+
+```{r}
+#glmFit1 <- glm(model1, data = train, family = "binomial")
+#glmFit2 <- glm(model2, data = train, family = "binomial")
+#glmFit3 <- glm(model3, data = train, family = "binomial")
+```
+
+
+```{r}
+
+glmFit1 <- train(model1, 
+              data = train,
+              method = "glm",
+              family = "binomial",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3))
+glmFit2 <- train(model2, 
+              data = train,
+              method = "glm",
+              family = "binomial",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3))
+glmFit3 <- train(model3, 
+              data = train,
+              method = "glm",
+              family = "binomial",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3))
+```
+
+```{r}
+glmFit1$results$Accuracy
+glmFit2$results$Accuracy
+glmFit3$results$Accuracy
+```
+
+
+As we can see our 3rd model was the most accurate. Let's look at a basic summary of it:
+
+```{r}
+summary(glmFit3)
+```
+
+
+Now we will predict with the test data and model 3 and see how we do:
+
+```{r}
+postResample(predict(glmFit3, newdata = test), test$HeartDiseaseF)
+```
+
+```{r}
+confusionMatrix(data = test$HeartDiseaseF, 
+                reference = predict(glmFit3, newdata = test))
+```
 
 
 ### Tree Models
