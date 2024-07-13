@@ -194,15 +194,78 @@ confusionMatrix(data = test$HeartDiseaseF,
 
 ### Tree Models
 In this section we’ll fit a few different tree based models in a similar way as above!
-Choose your own variables of interest (as with logistic regression, this models can accept factor/character variables as predictors). Use repated 10 fold CV to select a best 2 
-• classification tree model (use method = rpart: tuning parameter is cp, use values 0, 0.001, 0.002, . . . , 0.1)
-• a random forest (use method = rf: tuning parameter is mtry, use values of 1, 2, . . . , # of predictors (bagging is a special case here!)
-• a boosted tree (use method = gbm: tuning parameters are n.trees, interaction.depth, shrinkage, and n.minobsinnode, use all combinations of n.trees of 25, 50, 100, and 200, interaction.depth of 1, 2, 3, shrinkage = 0.1, and nminobsinnode = 10; Hint: use expand.grid() to create your data frame for tuneGrid and verbose = FALSE limits the output produced Lastly, check how well each of your chosen models do on the test set using the confusionMatrix() function.
+Choose your own variables of interest (as with logistic regression, this models can accept factor/character variables as predictors). Use repated 10 fold CV to select a best  
+
+Model for Tree method comparison
+```{r}
+model <- HeartDiseaseF ~ Sex + Age + ExerciseAngina + Oldpeak + ChestPainType
+```
+
+#### classification tree model 
+(use method = rpart: tuning parameter is cp, use values 0, 0.001, 0.002, . . . , 0.1)
+```{r}
+treeFit <- train(model, 
+              data = train,
+              method = "rpart",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3),
+              tuneGrid = expand.grid(cp = seq(from = 0, to = 0.1, by = 0.001))
+              )
+```
+
+```{r}
+plot(treeFit)
+```
+
+#### random forest 
+(use method = rf: tuning parameter is mtry, use values of 1, 2, . . . , # of predictors)
+(bagging is a special case here!)
+
+
+```{r}
+rfFit <- train(model, 
+              data = train,
+              method = "rf",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3),
+              tuneGrid = expand.grid(mtry = seq(from = 1, to = length(model1), by = 1))
+              )
+```
+
+
+
+#### boosted tree 
+(use method = gbm: tuning parameters are n.trees, interaction.depth, shrinkage, and n.minobsinnode, use all combinations of n.trees of 25, 50, 100, and 200, interaction.depth of 1, 2, 3, shrinkage = 0.1, and nminobsinnode = 10; Hint: use expand.grid() to create your data frame for tuneGrid and verbose = FALSE limits the output produced Lastly, check how well each of your chosen models do on the test set using the confusionMatrix() function.
+```{r}
+boostedFit <- train(model, 
+              data = train,
+              method = "gbm",
+              trControl = trainControl(method = "repeatedcv", 
+                                       number = 10,
+                                       repeats = 3),
+              tuneGrid = expand.grid(n.trees = c(25,50,100,200),
+                                     interaction.depth = c(1,2,3),
+                                     shrinkage = 0.1,
+                                     n.minobsinnode = 10
+                                     ),
+              verbose = FALSE)
+              
+```
 
 
 
 
-
+```{r}
+confusionMatrix(data = test$HeartDiseaseF,
+                reference = predict(treeFit, newdata = test))$overall[1]
+confusionMatrix(data = test$HeartDiseaseF,
+                reference = predict(rfFit, newdata = test))$overall[1]
+confusionMatrix(data = test$HeartDiseaseF,
+                reference = predict(boostedFit, newdata = test))$overall[1]
+```
+boosted is most accuracte - nearly 80%
 
 
 
