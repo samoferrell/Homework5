@@ -1,5 +1,7 @@
 ---
-title: "Homework5quarto"
+title: "Homework 5 - ST558"
+author: "Samuel O'Ferrell"
+description: "This homework shows practice fitting models and using the caret package. First, conceptual questions are discussed. Then, we will be performing some EDA on a heart disease data set. Once ready, we will be fitting several different types of models: kNN, Logistic Regression, Tree Models. We will be using repeated CV and displaying confusion matrices of the accuracy of the models on the test data."
 format: html
 editor: visual
 ---
@@ -8,88 +10,104 @@ editor: visual
 
 What is the purpose of using cross-validation when fitting a random forest model?
 
-> The purpose is to:
+> With random forest models, there are a lot of changes we can make to the model, using cross validation can  help determine better shrinkage, n.trees, and interaction.depth. Also, if we have time, we can fit many models to compare with cross validation. This informs us if we should use a simpler/easier to implement model of the performance drop isn't large.
 
 Describe the bagged tree algorithm.
 
-> The bagged tree algorithm is
+> The bagged tree algorithm for is as follows:
+
+> 1.  Create a bootstrap sample (same size as actual sample)
+
+> 2.  Train tree on this sample (no pruning necessary)
+
+> 3.  Repeat B = 1000 times
+
+> 4.  (Regression) Final prediction is average of these prediction
+
+> 4.  (Classification) Final prediction can be majority vote (most common prediction made by all bootstrap trees)
 
 What is meant by a general linear model?
 
-> A general linear model means
+> A general linear model is a model that is for continuous responses, but allows for both continuous and categorical predictors.
 
-When fitting a multiple linear regression model, what does adding an interaction term do? That is,
-what does it allow the model to do differently as compared to when it is not included in the model?
+When fitting a multiple linear regression model, what does adding an interaction term do? That is, what does it allow the model to do differently as compared to when it is not included in the model?
 
-> Adding an interaction term
+> Adding an interaction term helps capture any dependent relationship/effect between predictors. In a model without the interaction term, all predictors are assumed to have an independnt effect on the response.
 
 Why do we split our data into a training and test set?
 
-> We split our data into a training and test set to
+> We split our data into a training set to train the model and then with the test set of the data we can see how accurate the model is at predicting the correct variable. By doing this we are ensuring no data leakage and creating a solid unbiased model.
 
 ## Task 2: Fitting Models
+
+These are the libraries accessed for the assignment.
 ```{r}
 library(tidyverse)
 library(caret)
 ```
-
-
+Now, we will be reading in the data. I have saved it into the folder for my repo.
 ```{r}
 heart <- read_csv("heart.csv")
 ```
-1. Quickly understand your data. Check on missingness and summarize the data, especially with respect to the relationships of the variables to HeartDisease
+
+Now we will quickly understand your data. We will check on missingness and summarize the data, especially with respect to the relationships of the variables to HeartDisease
+
 ```{r}
 heartNA <- heart |>
   filter(if_any(everything(), is.na))
 # no missing data
 
+# Generating tables of the variables
 table(heart$ChestPainType, heart$HeartDisease)
 table(heart$Sex, heart$HeartDisease)
 table(heart$RestingECG, heart$HeartDisease)
 ```
-2. Create a new variable that is a factor version of the HeartDisease variable (if needed, this depends on how you read in your data). Remove the ST_Slope variable and the original HeartDisease variable (if applicable).
+
+Now we will create a new variable that is a factor version of the HeartDisease variable. We will also remove the ST_Slope variable and the original HeartDisease variable.
 
 ```{r}
 heart_new <- heart |>
-  mutate(HeartDiseaseF = as.factor(HeartDisease)) |>
-  select(-c(ST_Slope,HeartDisease))
+  mutate(HeartDiseaseF = as.factor(HeartDisease)) |> #changing to factor
+  select(-c(ST_Slope,HeartDisease)) # removing ST_slope and original HeartDisease variable
 ```
 
-Create dummy columns corresponding to the values of these three variables (Sex,
-ExerciseAngina ChestPainType, and RestingECG) for use in our kNN fit. The caret vignette has a function to help us out here. You should use dummyVars() and predict() to create new columns. Then add these columns to our data frame
+Now we will create dummy columns corresponding to the values of these variables (Sex, ExerciseAngina, ChestPainType, and RestingECG) for use in our kNN fit. 
 
 ```{r}
+# generating a dummy variable model
 model <- dummyVars(~ Sex + ExerciseAngina + ChestPainType + RestingECG, data = heart_new)
+# applying it on the data
 heart_dummy <- as.data.frame(predict(model, newdata = heart_new))
-View(heart_dummy)
+# combining with our original data
 heart_new_dummy <- cbind(heart_new, heart_dummy)
 ```
 
-Split your data into a training and test set. (Ideally you’d do this prior to the EDA so that info from the EDA doesn’t bias what you do modeling-wise, but that isn’t usually done.)
+Now we will split our data into a training and test set.
 
 ```{r}
 set.seed(3)
+# Creating an 80/20 split
 split <- createDataPartition(y = heart_new_dummy$HeartDiseaseF, p = 0.8, list = FALSE)
 train <- heart_new_dummy[split, ]
 test <- heart_new_dummy[-split, ]
 dim(train)
 ```
 
-
 ### kNN
-Next, we’ll fit a kNN model. The article here gives a great example of selecting the number of neighbors to use with the caret package. You don’t have to use all the variables from your dataset when fitting the model. However, you should only use numeric variables.
-They use repeated 10 fold cross-validation. Although computationally intensive, doing repeated CV helps to give a more stable prediction of CV error. This is similar to how a mean is less variable than a single value. Since there is some inherent randomness in doing a CV computation, we can get an overall more stable result by averaging a few runs of the CV algorithm! Train the kNN model. 
 
-Use repeated 10 fold cross-validation, with the number of repeats being 3. You should also preprocess the data by centering and scaling. When fitting the model, set the tuneGrid so that you are considering values of k of 1, 2, 3, . . . , 40. (Note: From the help for the train() function it says: tuneGrid A data frame with possible tuning values. The columns are named the same as the tuning parameters. The name of the tuning parameter here is k.) Lastly, check how well your chosen model does on the test set using the confusionMatrix() function.
+Next, we’ll fit a kNN model. We will use repeated 10 fold cross-validation, with the number of repeats being 3. We will also preprocess the data by centering and scaling. 
 
 #### Model
+
 ```{r}
+# removing non-numeric variables for easier modeling
 train_numeric <- train |>
   select(-c(Sex, ChestPainType, RestingECG, ExerciseAngina))
+# centering and scaling
 preProcValues <- preProcess(train_numeric, method = c("center", "scale"))
 trainTransformed <- predict(preProcValues, train_numeric)
 
-
+# knn model
 fit1 <- train(HeartDiseaseF ~ ., 
               data = trainTransformed,
               method = "knn",
@@ -102,42 +120,36 @@ fit1 <- train(HeartDiseaseF ~ .,
 ```
 
 #### Plot
+
 ```{r}
 plot(fit1)
 ```
+
 #### Analysis
+
+
+Now, we will dislay our confusion matrix to see how well the model performed.
 ```{r}
+# pre-procesing my test data prior to running the model:
 test_numeric <- test |>
   select(-c(Sex, ChestPainType, RestingECG, ExerciseAngina))
 preProcValues <- preProcess(test_numeric, method = c("center", "scale"))
 testTransformed <- predict(preProcValues, test_numeric)
-prediction_test <- predict(fit1, testTransformed)
-prediction_test
-```
 
-```{r}
-postResample(predict(fit1, newdata = testTransformed), testTransformed$HeartDiseaseF)
-```
-
-```{r}
+# confusion matrix
 confusionMatrix(data = testTransformed$HeartDiseaseF, 
                 reference = predict(fit1, newdata = testTransformed))
 ```
 
 ### Logistic Regression
-Using your EDA, posit three different logistic regression models. Note: You don’t have to use the dummy columns you made here as the glm() function (and the caret implementation of it) can handle factor/character variables as predictors. Fit those models on the training set, using repeated CV as done above. You can preprocess the data or not, up to you. Identify your best model and provide a basic summary of it. Lastly, check how well your chosen model does on the test set using the confusionMatrix() function
 
+Using our EDA, we will posit three different logistic regression models. 
 
 ```{r}
+# three models
 model1 <- HeartDiseaseF ~ Age + Sex + Cholesterol
 model2 <- HeartDiseaseF ~ RestingBP + FastingBS + MaxHR
 model3 <- HeartDiseaseF ~ ChestPainType*RestingECG
-```
-
-```{r}
-#glmFit1 <- glm(model1, data = train, family = "binomial")
-#glmFit2 <- glm(model2, data = train, family = "binomial")
-#glmFit3 <- glm(model3, data = train, family = "binomial")
 ```
 
 
@@ -166,12 +178,15 @@ glmFit3 <- train(model3,
                                        repeats = 3))
 ```
 
+#### Analysis
 ```{r}
+cat("Model 1 Accuracy: ")
 glmFit1$results$Accuracy
+cat("Model 2 Accuracy: ")
 glmFit2$results$Accuracy
+cat("Model 3 Accuracy: ")
 glmFit3$results$Accuracy
 ```
-
 
 As we can see our 3rd model was the most accurate. Let's look at a basic summary of it:
 
@@ -179,30 +194,25 @@ As we can see our 3rd model was the most accurate. Let's look at a basic summary
 summary(glmFit3)
 ```
 
-
 Now we will predict with the test data and model 3 and see how we do:
-
-```{r}
-postResample(predict(glmFit3, newdata = test), test$HeartDiseaseF)
-```
 
 ```{r}
 confusionMatrix(data = test$HeartDiseaseF, 
                 reference = predict(glmFit3, newdata = test))
 ```
 
-
 ### Tree Models
-In this section we’ll fit a few different tree based models in a similar way as above!
-Choose your own variables of interest (as with logistic regression, this models can accept factor/character variables as predictors). Use repated 10 fold CV to select a best  
 
-Model for Tree method comparison
+In this section we’ll fit a few different tree based models in a similar way as above! We will be using repeated 10 fold CV to select a best model for Tree method comparison.
+
+This is the model we will be using:
 ```{r}
 model <- HeartDiseaseF ~ Sex + Age + ExerciseAngina + Oldpeak + ChestPainType
 ```
 
-#### classification tree model 
-(use method = rpart: tuning parameter is cp, use values 0, 0.001, 0.002, . . . , 0.1)
+#### Classification Tree Model
+
+We will start with a classification tree model:
 ```{r}
 treeFit <- train(model, 
               data = train,
@@ -214,15 +224,16 @@ treeFit <- train(model,
               )
 ```
 
+##### Plot
+
+This is a plot of our model:
 ```{r}
 plot(treeFit)
 ```
 
-#### random forest 
-(use method = rf: tuning parameter is mtry, use values of 1, 2, . . . , # of predictors)
-(bagging is a special case here!)
+#### Random Forest
 
-
+Now we will create a Random Forest model:
 ```{r}
 rfFit <- train(model, 
               data = train,
@@ -234,10 +245,10 @@ rfFit <- train(model,
               )
 ```
 
+#### Boosted Tree
 
+Now we will generate a Boosted Tree model:
 
-#### boosted tree 
-(use method = gbm: tuning parameters are n.trees, interaction.depth, shrinkage, and n.minobsinnode, use all combinations of n.trees of 25, 50, 100, and 200, interaction.depth of 1, 2, 3, shrinkage = 0.1, and nminobsinnode = 10; Hint: use expand.grid() to create your data frame for tuneGrid and verbose = FALSE limits the output produced Lastly, check how well each of your chosen models do on the test set using the confusionMatrix() function.
 ```{r}
 boostedFit <- train(model, 
               data = train,
@@ -254,30 +265,20 @@ boostedFit <- train(model,
               
 ```
 
+#### Comparison of the Three Models
 
-
-
+We will generate the confusion matrix of all three models in order, and access the accuracy of each model:
 ```{r}
+cat("Classification Tree Model")
 confusionMatrix(data = test$HeartDiseaseF,
                 reference = predict(treeFit, newdata = test))$overall[1]
+cat("Random Forest Model")
 confusionMatrix(data = test$HeartDiseaseF,
                 reference = predict(rfFit, newdata = test))$overall[1]
+cat("Boosted Tree Model")
 confusionMatrix(data = test$HeartDiseaseF,
                 reference = predict(boostedFit, newdata = test))$overall[1]
 ```
-boosted is most accuracte - nearly 80%
+### Final Analysis
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+As we can see, we nearly got 80% accuracy with our Boosted Model, giving it the highest accuracy of all the models we went through. This model overall did the best job on the test set.
