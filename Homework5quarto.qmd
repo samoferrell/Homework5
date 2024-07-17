@@ -62,13 +62,23 @@ table(heart$ChestPainType, heart$HeartDisease)
 table(heart$Sex, heart$HeartDisease)
 table(heart$RestingECG, heart$HeartDisease)
 ```
+Numerical Summaries of our numerical variables:
+```{r}
+summary(heart |> select(where))
+```
 
 Now we will create a new variable that is a factor version of the HeartDisease variable. We will also remove the ST_Slope variable and the original HeartDisease variable.
 
+
 ```{r}
 heart_new <- heart |>
-  mutate(HeartDiseaseF = as.factor(HeartDisease)) |> #changing to factor
+  mutate(HeartDiseaseF = as.factor(HeartDisease)) |> # changing to factor
   select(-c(ST_Slope,HeartDisease)) # removing ST_slope and original HeartDisease variable
+```
+
+Looking at our numeric variables, we can see there isn't a super high correlation that sticks out that would indicate collinearity. 
+```{r}
+cor(heart_new |> select(where(is.numeric)))
 ```
 
 Now we will create dummy columns corresponding to the values of these variables (Sex, ExerciseAngina, ChestPainType, and RestingECG) for use in our kNN fit. 
@@ -180,12 +190,14 @@ glmFit3 <- train(model3,
 
 #### Analysis
 ```{r}
-cat("Model 1 Accuracy: ")
-glmFit1$results$Accuracy
-cat("Model 2 Accuracy: ")
-glmFit2$results$Accuracy
-cat("Model 3 Accuracy: ")
-glmFit3$results$Accuracy
+cat("Model 1 Accuracy: ",
+glmFit1$results$Accuracy)
+
+cat("Model 2 Accuracy: ",
+glmFit2$results$Accuracy)
+
+cat("Model 3 Accuracy: ",
+glmFit3$results$Accuracy)
 ```
 
 As we can see our 3rd model was the most accurate. Let's look at a basic summary of it:
@@ -269,15 +281,15 @@ boostedFit <- train(model,
 
 We will generate the confusion matrix of all three models in order, and access the accuracy of each model:
 ```{r}
-cat("Classification Tree Model")
+cat("Classification Tree Model", 
 confusionMatrix(data = test$HeartDiseaseF,
-                reference = predict(treeFit, newdata = test))$overall[1]
-cat("Random Forest Model")
+                reference = predict(treeFit, newdata = test))$overall[1])
+cat("Random Forest Model",
 confusionMatrix(data = test$HeartDiseaseF,
-                reference = predict(rfFit, newdata = test))$overall[1]
-cat("Boosted Tree Model")
+                reference = predict(rfFit, newdata = test))$overall[1])
+cat("Boosted Tree Model",
 confusionMatrix(data = test$HeartDiseaseF,
-                reference = predict(boostedFit, newdata = test))$overall[1]
+                reference = predict(boostedFit, newdata = test))$overall[1])
 ```
 ### Final Analysis
 
