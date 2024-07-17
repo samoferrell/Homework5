@@ -64,7 +64,7 @@ table(heart$RestingECG, heart$HeartDisease)
 ```
 Numerical Summaries of our numerical variables:
 ```{r}
-summary(heart |> select(where))
+summary(heart |> select(where(is.numeric)))
 ```
 
 Now we will create a new variable that is a factor version of the HeartDisease variable. We will also remove the ST_Slope variable and the original HeartDisease variable.
